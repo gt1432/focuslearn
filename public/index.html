@@ -6,29 +6,244 @@
     <title>FocusLearn - AI-Powered Learning</title>
     <link rel="stylesheet" href="/styles/global.css">
     <style>
-        .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
-        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(to right, var(--primary), #a5b4fc); -webkit-background-clip: text; color: transparent; background-clip: text; }
-        .hero p { font-size: 1.25rem; color: var(--text-muted); max-width: 600px; margin-bottom: 2rem; }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background: #0f172a;
+        }
+
+        .hero-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: url('/images/hero_bg.png') center/cover no-repeat;
+            padding: 2rem;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.4) 100%);
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            padding: 4rem;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hero-content:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 35px 60px -15px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(to right, #fff, var(--primary), #a5b4fc);
+            -webkit-background-clip: text;
+            color: transparent;
+            background-clip: text;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .hero p {
+            font-size: 1.4rem;
+            color: #cbd5e1;
+            margin-bottom: 3rem;
+            line-height: 1.7;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .btn-hero {
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-hero:hover {
+            transform: scale(1.05);
+        }
+
+        /* Footer Styling */
+        footer {
+            position: relative;
+            z-index: 2;
+            background: rgba(15, 23, 42, 0.98);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 4rem 2rem;
+            color: #94a3b8;
+        }
+
+        .footer-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+        }
+
+        .footer-brand h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .footer-links h3 {
+            color: #fff;
+            font-size: 1.1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .copyright {
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.8rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 2rem;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-10px, 15px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .glow-orb {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 1;
+            filter: blur(40px);
+            animation: float 10s infinite ease-in-out;
+        }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <main class="main-content hero animate-fade-in">
-            <h1>FocusLearn</h1>
-            <p>Convert your goals into structured, step-by-step learning paths driven by AI.</p>
-            
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <a href="/login.html" class="btn">Log In</a>
-                <a href="/signup.html" class="btn btn-outline">Sign Up</a>
+    <div class="hero-section">
+        <div class="glow-orb" style="top: 10%; left: -10%;"></div>
+        <div class="glow-orb" style="bottom: 10%; right: -10%; animation-delay: -5s;"></div>
+
+        <main class="hero animate-fade-in">
+            <div class="hero-content" id="heroCard">
+                <h1>FocusLearn</h1>
+                <p>Unlock your full potential with an AI-powered roadmap. We convert your ambitious goals into personalized, interactive daily paths that keep you moving forward.</p>
+                
+                <div class="cta-group">
+                    <a href="/login.html" class="btn btn-hero">Launch Dashboard</a>
+                    <a href="/signup.html" class="btn btn-outline btn-hero">Start Journey</a>
+                </div>
             </div>
         </main>
     </div>
-    
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h2>FocusLearn</h2>
+                <p>The next generation of personalized education. Leveraging AI to bridge the gap between abstract goals and concrete daily execution.</p>
+            </div>
+            <div class="footer-links">
+                <h3>Product</h3>
+                <ul>
+                    <li><a href="#">AI Roadmaps</a></li>
+                    <li><a href="#">Zen Focus Mode</a></li>
+                    <li><a href="#">Gamified Progress</a></li>
+                    <li><a href="#">Curated Resources</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h3>About</h3>
+                <ul>
+                    <li><a href="#">Our Vision</a></li>
+                    <li><a href="#">Expert Mentors</a></li>
+                    <li><a href="#">Terms of Use</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h3>Support</h3>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">AI Assistant</a></li>
+                    <li><a href="#">Community Forum</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2026 FocusLearn AI. Elevating the way we learn, one task at a time.</p>
+        </div>
+    </footer>
+
     <script>
         // Redirect if already logged in
         if (localStorage.getItem('focuslearn_userId')) {
             window.location.href = '/dashboard.html';
         }
+
+        // Interactive card movement
+        const card = document.getElementById('heroCard');
+        document.addEventListener('mousemove', (e) => {
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 50;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 50;
+            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg) translateY(-5px)`;
+        });
+
+        document.addEventListener('mouseenter', () => {
+            card.style.transition = 'none';
+        });
+
+        document.addEventListener('mouseleave', () => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.transform = `rotateY(0deg) rotateX(0deg) translateY(0)`;
+        });
     </script>
 </body>
 </html>
