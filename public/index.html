@@ -145,16 +145,17 @@
         .scrolling-header {
             position: fixed;
             top: 0; left: 0; right: 0;
-            background: #ef4444; /* Match red button */
-            color: #fff;
+            background: transparent; /* Removed background color */
+            color: var(--primary); /* Use primary color for visibility */
             padding: 0.5rem 0;
             z-index: 100;
             overflow: hidden;
             white-space: nowrap;
-            font-weight: 700;
-            font-size: 0.9rem;
+            font-weight: 800;
+            font-size: 1.1rem;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
         }
 
         .scroll-text {
@@ -260,7 +261,7 @@
 <body>
     <div class="scrolling-header">
         <div class="scroll-text">
-            Welcome to FocusLearn — Master Web Development, AI, and Data Science — Start your journey today! — Welcome to FocusLearn — Master Web Development, AI, and Data Science — Start your journey today!
+            Welcome to Focus Search — Master Web Development, AI, and Data Science — Start your journey today! — Welcome to Focus Search — Master Web Development, AI, and Data Science — Start your journey today!
         </div>
     </div>
     <div class="hero-section">
@@ -269,7 +270,10 @@
 
         <main class="hero animate-fade-in">
             <div class="hero-content" id="heroCard">
-                <h1>FocusLearn</h1>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 1rem;">
+                    <img src="/images/logo.png" alt="Logo" style="width: 60px; height: 60px; border-radius: 12px; box-shadow: 0 0 20px rgba(99,102,241,0.5);">
+                    <h1>FocusLearn</h1>
+                </div>
                 <p>Unlock your full potential with an AI-powered roadmap. We convert your ambitious goals into personalized, interactive daily paths that keep you moving forward.</p>
                 
                 <div class="cta-group">
@@ -282,7 +286,8 @@
 
     <footer>
         <div class="footer-container">
-            <div class="footer-brand">
+            <div class="footer-brand" style="display: flex; align-items: center; gap: 1rem;">
+                <img src="/images/logo.png" alt="Logo" style="width: 40px; height: 40px; border-radius: 8px;">
                 <h2>FocusLearn</h2>
             </div>
             <nav class="footer-nav">
