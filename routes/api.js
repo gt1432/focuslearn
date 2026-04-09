@@ -20,6 +20,8 @@ router.post('/goal', async (req, res) => {
         const goal = new Goal({ title, duration, userId });
         await goal.save();
 
+        const generatedTasks = [];
+
         if (predefinedRoadmaps[title]) {
             const track = predefinedRoadmaps[title];
             for (const item of track) {

@@ -169,9 +169,74 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* Adjusted Hero for Header */
+        /* Smooth Scroll */
+        html { scroll-behavior: smooth; }
+
         .hero-section {
             padding-top: 3rem;
+            margin-bottom: 5rem;
+        }
+
+        /* Product Sections */
+        .info-section {
+            padding: 8rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateY(-10px);
+        }
+
+        .feature-card i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .section-tag {
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 5.5rem;
+            margin-bottom: 1rem;
+            font-weight: 900;
+            background: linear-gradient(to bottom, #ffffff, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         /* Premium Horizontal Footer */
@@ -186,75 +251,24 @@
         }
 
         .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            max-width: 1200px; margin: 0 auto; padding: 0 2rem;
+            display: flex; justify-content: space-between; align-items: center;
         }
 
         .footer-brand h2 {
-            font-size: 1.8rem;
-            font-weight: 800;
+            font-size: 1.8rem; font-weight: 800;
             background: linear-gradient(to right, #fff, var(--primary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin: 0;
+            -webkit-background-clip: text; background-clip: text; color: transparent; margin: 0;
         }
 
-        .footer-nav ul {
-            display: flex;
-            gap: 2.5rem;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .footer-nav a {
-            color: #94a3b8;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .footer-nav a::after {
-            content: '';
-            position: absolute;
-            bottom: -5px; left: 0; width: 0; height: 2px;
-            background: var(--primary);
-            transition: width 0.3s ease;
-        }
-
-        .footer-nav a:hover {
-            color: #fff;
-            text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
-        }
-
-        .footer-nav a:hover::after {
-            width: 100%;
-        }
-
-        .footer-copy {
-            color: #475569;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
+        .footer-nav ul { display: flex; gap: 2.5rem; list-style: none; margin: 0; padding: 0; }
+        .footer-nav a { color: #94a3b8; text-decoration: none; font-weight: 600; font-size: 1rem; transition: 0.3s; position: relative; }
+        .footer-nav a:hover { color: #fff; text-shadow: 0 0 10px rgba(99, 102, 241, 0.5); }
+        .footer-copy { color: #475569; font-size: 0.9rem; font-weight: 500; }
 
         @media (max-width: 768px) {
-            .footer-container {
-                flex-direction: column;
-                gap: 1.5rem;
-                text-align: center;
-            }
-            .footer-nav ul {
-                gap: 1.5rem;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
+            .footer-container { flex-direction: column; gap: 1.5rem; text-align: center; }
+            .footer-nav ul { gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
         }
     </style>
 </head>
@@ -272,7 +286,7 @@
             <div class="hero-content" id="heroCard">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 1rem;">
                     <img src="/images/logo.png" alt="Logo" style="width: 60px; height: 60px; border-radius: 12px; box-shadow: 0 0 20px rgba(99,102,241,0.5);">
-                    <h1>FocusLearn</h1>
+                    <h1 style="margin:0;">FocusLearn</h1>
                 </div>
                 <p>Unlock your full potential with an AI-powered roadmap. We convert your ambitious goals into personalized, interactive daily paths that keep you moving forward.</p>
                 
@@ -284,6 +298,40 @@
         </main>
     </div>
 
+    <!-- Roadmaps Section -->
+    <section id="roadmaps" class="info-section">
+        <span class="section-tag">Feature One</span>
+        <h2 class="section-title">AI-Powered Roadmaps</h2>
+        <div class="section-grid">
+            <div class="feature-card">
+                <h3>Personalized Paths</h3>
+                <p class="text-muted">Tell the AI what you want to learn, and we build a day-by-day journey just for you.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Curated Content</h3>
+                <p class="text-muted">No more searching. We find the best videos and articles so you can stay focused.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Smart Tracking</h3>
+                <p class="text-muted">Drag, drop, and mark tasks to keep your progress visible and your momentum high.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Zen Mode Section -->
+    <section id="zen" class="info-section" style="background: rgba(99, 102, 241, 0.05);">
+        <span class="section-tag">Feature Two</span>
+        <h2 class="section-title">Zen Focus Mode</h2>
+        <p class="text-muted" style="max-width: 600px; margin: 0 auto;">Enter a distraction-free universe. Immerse yourself in a full-screen environment with a high-tech timer designed to keep you in the flow state.</p>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="info-section">
+        <span class="section-tag">Our Vision</span>
+        <h2 class="section-title">Master Consistency</h2>
+        <p class="text-muted" style="max-width: 700px; margin: 0 auto; font-size: 1.2rem; line-height: 1.8;">FocusLearn is built on the philosophy that small, daily wins lead to massive mastery. We bridge the gap between "I want to learn" and actually doing it, one task at a time.</p>
+    </section>
+
     <footer>
         <div class="footer-container">
             <div class="footer-brand" style="display: flex; align-items: center; gap: 1rem;">
@@ -292,12 +340,12 @@
             </div>
             <nav class="footer-nav">
                 <ul>
-                    <li><a href="/login.html">Roadmaps</a></li>
-                    <li><a href="/login.html">Zen Mode</a></li>
-                    <li><a href="/login.html">Gamified</a></li>
-                    <li><a href="/login.html">About</a></li>
+                    <li><a href="#roadmaps">Roadmaps</a></li>
+                    <li><a href="#zen">Zen Mode</a></li>
+                    <li><a href="#roadmaps">Gamified</a></li>
+                    <li><a href="#about">About</a></li>
                     <li><a href="/login.html">Privacy</a></li>
-                    <li><a href="/login.html">Contact</a></li>
+                    <li><a href="mailto:support@focuslearn.ai">Contact</a></li>
                 </ul>
             </nav>
             <div class="footer-copy">
