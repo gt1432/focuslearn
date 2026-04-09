@@ -158,34 +158,59 @@
         </main>
     </div>
 
-    <!-- Daily Challenge Overlay -->
+    <!-- Resource-Specific Quiz Overlay -->
     <div class="quiz-overlay" id="quizOverlay">
         <div class="quiz-card animate-fade-in">
-            <h2 style="color:var(--primary); margin-bottom: 0.5rem;">Daily Challenge 🧠</h2>
-            <p class="text-muted" id="quizInterrelated">Connecting your progress from previous steps...</p>
-            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 2rem 0;">
-            <h3 id="quizQuestion">Loading Question...</h3>
-            <div class="quiz-options" id="quizOptions"></div>
-            <p id="quizFeedback" style="margin-top: 2rem; font-weight: 600; display: none;"></p>
-            <button class="btn mt-4" id="closeQuizBtn" style="display:none; width:100%;">Return to Dashboard</button>
+            <div id="quizHeader" class="mb-4">
+                <h2 style="color:var(--primary); margin-bottom: 0.25rem;">Knowledge Check 🧠</h2>
+                <div id="quizResourceTitle" class="text-muted" style="font-size: 0.9rem;"></div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div style="width:100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 99px; margin-bottom: 2rem; overflow:hidden;">
+                <div id="quizProgressBar" style="width: 0%; height:100%; background: var(--primary); transition: width 0.3s ease;"></div>
+            </div>
+
+            <div id="quizQuestionContainer">
+                <h3 id="quizQuestion" style="min-height: 80px; display: flex; align-items: center; justify-content: center;">Loading Question...</h3>
+                <div class="quiz-options" id="quizOptions"></div>
+            </div>
+
+            <div id="quizResultWrapper" style="display:none;">
+                <h2 id="finalScoreText" style="font-size: 3rem; margin-bottom: 0.5rem;">0%</h2>
+                <p id="finalFeedback" style="font-size: 1.2rem; margin-bottom: 2rem; font-weight: 600;"></p>
+                <div id="correctAnswersReview" style="text-align: left; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 2rem; font-size: 0.9rem; display:none;"></div>
+                <button class="btn" onclick="closeQuiz()" style="width:100%;">Done</button>
+            </div>
+            
+            <p id="quizStepInfo" class="text-muted mt-4" style="font-size: 0.8rem;">Question 1 of 3</p>
         </div>
     </div>
 
     <script type="module">
-        import { getOrCreateUserId, fetchUserGoals, syncUserFocusTime, updateTaskNotes, submitTaskQuiz } from './js/utils.js';
+        import { getOrCreateUserId, fetchUserGoals, syncUserFocusTime, updateTaskNotes, submitResourceQuiz } from './js/utils.js';
         
         let timerInterval;
         const FULL_TIME = 25 * 60; 
         let timeLeft = FULL_TIME; 
         let isRunning = false;
         let currentTask = null;
+        let activeTaskId = localStorage.getItem('focuslearn_activeTask');
+
+        // Quiz session state
+        let quizState = {
+            resourceIndex: -1,
+            questions: [],
+            answers: [],
+            currentStep: 0
+        };
         
         const timeDisplay = document.getElementById('timeDisplay');
         const timerProgress = document.getElementById('timerProgress');
         const startBtn = document.getElementById('startBtn');
         const pauseBtn = document.getElementById('pauseBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const finishTaskBtn = document.getElementById('finishTaskBtn');
+        const notesArea = document.getElementById('notesArea');
 
         const CIRCUMFERENCE = 2 * Math.PI * 140; 
 
@@ -202,7 +227,7 @@
             isRunning = false;
             startBtn.style.display = 'block';
             pauseBtn.style.display = 'none';
-            alert('Focus session complete! Your hard work is paying off.');
+            alert('Focus session complete!');
             try { await syncUserFocusTime(25); } catch(e) {}
         }
 
@@ -243,10 +268,6 @@
             }
         };
 
-        const activeTaskId = localStorage.getItem('focuslearn_activeTask');
-        const notesArea = document.getElementById('notesArea');
-        const markdownPreview = document.getElementById('markdownPreview');
-
         document.getElementById('saveNotesBtn').addEventListener('click', async () => {
             if(!activeTaskId) return;
             try {
@@ -257,82 +278,133 @@
             } catch(e) {}
         });
 
-        finishTaskBtn.addEventListener('click', () => {
-            if(!currentTask || !currentTask.quiz) return alert('No quiz available for this task.');
-            showQuiz();
-        });
+        // Advanced Quiz Logic
+        window.startResourceQuiz = (resourceIndex) => {
+            const resource = currentTask.resources[resourceIndex];
+            if (!resource || !resource.questions || resource.questions.length === 0) {
+                return alert('This resource does not have a quiz yet.');
+            }
+            
+            quizState = {
+                resourceIndex,
+                questions: resource.questions,
+                answers: [],
+                currentStep: 0
+            };
 
-        function showQuiz() {
-            const quiz = currentTask.quiz;
             document.getElementById('quizOverlay').style.display = 'flex';
-            document.getElementById('quizQuestion').textContent = quiz.question;
+            document.getElementById('quizResourceTitle').textContent = `Assessing: ${resource.title}`;
+            document.getElementById('quizQuestionContainer').style.display = 'block';
+            document.getElementById('quizResultWrapper').style.display = 'none';
+            document.getElementById('quizStepInfo').style.display = 'block';
+            
+            renderQuizStep();
+        };
+
+        function renderQuizStep() {
+            const q = quizState.questions[quizState.currentStep];
+            document.getElementById('quizQuestion').textContent = q.question;
             const optionsContainer = document.getElementById('quizOptions');
             optionsContainer.innerHTML = '';
             
-            quiz.options.forEach((opt, idx) => {
+            q.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
                 btn.className = 'quiz-option-btn';
                 btn.textContent = opt;
-                btn.onclick = () => handleQuizSubmission(idx, btn);
+                btn.onclick = () => selectOption(idx);
                 optionsContainer.appendChild(btn);
             });
+
+            const progress = ((quizState.currentStep) / quizState.questions.length) * 100;
+            document.getElementById('quizProgressBar').style.width = `${progress}%`;
+            document.getElementById('quizStepInfo').textContent = `Question ${quizState.currentStep + 1} of ${quizState.questions.length}`;
         }
 
-        async function handleQuizSubmission(index, btn) {
-            const feedback = document.getElementById('quizFeedback');
-            const result = await submitTaskQuiz(activeTaskId, index);
-            
-            feedback.style.display = 'block';
-            const allBtns = document.querySelectorAll('.quiz-option-btn');
-            allBtns.forEach(b => b.disabled = true);
-
-            if(result.isCorrect) {
-                 btn.classList.add('correct');
-                 feedback.textContent = "Correct! +5 Bonus XP awarded! ⚡";
-                 feedback.style.color = "var(--success)";
+        async function selectOption(index) {
+            quizState.answers.push(index);
+            if (quizState.currentStep < quizState.questions.length - 1) {
+                quizState.currentStep++;
+                renderQuizStep();
             } else {
-                 btn.classList.add('wrong');
-                 feedback.textContent = `Incorrect. The knowledge will sink in soon! Correct was: ${currentTask.quiz.options[result.correctAnswer]}`;
-                 feedback.style.color = "var(--danger)";
+                finishQuiz();
             }
-            document.getElementById('closeQuizBtn').style.display = 'block';
         }
 
-        document.getElementById('closeQuizBtn').addEventListener('click', () => {
-            window.location.href = '/dashboard.html';
-        });
+        async function finishQuiz() {
+            document.getElementById('quizProgressBar').style.width = `100%`;
+            try {
+                const result = await submitResourceQuiz(activeTaskId, quizState.resourceIndex, quizState.answers);
+                
+                document.getElementById('quizQuestionContainer').style.display = 'none';
+                document.getElementById('quizStepInfo').style.display = 'none';
+                document.getElementById('quizResultWrapper').style.display = 'flex';
+                document.getElementById('finalScoreText').textContent = `${result.score}%`;
+                document.getElementById('finalFeedback').textContent = result.feedback;
+                
+                const reviewBox = document.getElementById('correctAnswersReview');
+                reviewBox.style.display = 'block';
+                reviewBox.innerHTML = '<strong>Answer Key:</strong><br>' + 
+                    result.correctAnswers.map((ca, i) => `Q${i+1}: ${quizState.questions[i].options[ca]}`).join('<br>');
+                
+                if (result.score >= 80) {
+                    document.getElementById('finalScoreText').style.color = 'var(--success)';
+                } else if (result.score < 50) {
+                    document.getElementById('finalScoreText').style.color = 'var(--danger)';
+                }
+                
+            } catch (e) {
+                alert('Quiz submission failed');
+            }
+        }
+
+        window.closeQuiz = () => {
+            document.getElementById('quizOverlay').style.display = 'none';
+            loadTask(); // refresh view
+        };
 
         async function loadTask() {
             if(!activeTaskId) return;
             try {
                 const goals = await fetchUserGoals();
-                let foundGoal = null;
+                let selectedTask = null;
+                let selectedGoal = null;
+                
                 goals.forEach(g => {
                     const t = g.tasks.find(ts => ts._id === activeTaskId);
-                    if(t) { foundTask = t; foundGoal = g; }
+                    if(t) { selectedTask = t; selectedGoal = g; }
                 });
                 
-                var foundTask; // Hoisting fix
-                if(foundTask) {
-                    currentTask = foundTask;
-                    document.getElementById('taskTitle').textContent = foundTask.title;
-                    document.getElementById('taskDay').textContent = `Day ${foundTask.day}`;
-                    notesArea.value = foundTask.notes || '';
+                if(selectedTask) {
+                    currentTask = selectedTask;
+                    document.getElementById('taskTitle').textContent = selectedTask.title;
+                    document.getElementById('taskDay').textContent = `Day ${selectedTask.day}`;
+                    notesArea.value = selectedTask.notes || '';
                     
-                    // Set Theme Background
                     let bg = "url('/images/hero_bg.png')";
-                    if(foundGoal.title === 'Web Development') bg = "url('/images/course_web_dev.png')";
-                    else if(foundGoal.title === 'Data Science') bg = "url('/images/course_data_sci.png')";
-                    else if(foundGoal.title === 'Artificial Intelligence') bg = "url('/images/course_ai.png')";
-                    else if(foundGoal.title === 'UI/UX Design') bg = "url('/images/course_design.png')";
+                    if(selectedGoal.title === 'Web Development') bg = "url('/images/course_web_dev.png')";
+                    else if(selectedGoal.title === 'Data Science') bg = "url('/images/course_data_sci.png')";
+                    else if(selectedGoal.title === 'Artificial Intelligence') bg = "url('/images/course_ai.png')";
+                    else if(selectedGoal.title === 'UI/UX Design') bg = "url('/images/course_design.png')";
                     document.getElementById('immersiveBg').style.setProperty('--focus-bg', bg);
 
-                    if(foundTask.resources && foundTask.resources.length > 0) {
-                        let resHtml = '<h4>Task Resources:</h4><ul style="padding-left: 1.5rem; color:#cbd5e1;">';
-                        foundTask.resources.forEach(r => {
-                            resHtml += `<li><a href="${r.url}" target="_blank" style="color:var(--primary); text-decoration:none;">${r.title}</a></li>`;
+                    if(selectedTask.resources && selectedTask.resources.length > 0) {
+                        let resHtml = '<h4>Learning Resources:</h4><div style="display:grid; gap: 1rem; margin-top: 1rem;">';
+                        selectedTask.resources.forEach((r, idx) => {
+                            const isDone = r.completed ? '✓ Mastery Achieved' : 'Take Quiz';
+                            resHtml += `
+                                <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                        <div>
+                                            <a href="${r.url}" target="_blank" style="color:var(--primary); font-weight:700; text-decoration:none; font-size:1.1rem;">📺 ${r.title}</a>
+                                            <p style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.5rem;">${r.description || ''}</p>
+                                        </div>
+                                        <button class="btn" style="background: ${r.completed ? 'var(--success)' : 'var(--primary)'}; padding: 0.5rem 1rem; font-size:0.8rem;" onclick="startResourceQuiz(${idx})">${isDone}</button>
+                                    </div>
+                                    ${r.bestScore > 0 ? `<div style="margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">Best Score: ${r.bestScore}% | Attempts: ${r.attempts}</div>` : ''}
+                                </div>
+                            `;
                         });
-                        resHtml += '</ul>';
+                        resHtml += '</div>';
                         document.getElementById('resourceLinks').innerHTML = resHtml;
                     }
                 }

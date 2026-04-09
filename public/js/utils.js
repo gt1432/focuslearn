@@ -48,6 +48,17 @@ export async function fetchUserGoals() {
     return await response.json();
 }
 
+export async function submitResourceQuiz(taskId, resourceIndex, answers) {
+    const userId = localStorage.getItem('focuslearn_userId');
+    const response = await fetch('/api/quiz/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, resourceIndex, answers, userId })
+    });
+    if (!response.ok) throw new Error('Submission failed');
+    return response.json();
+}
+
 export async function updateTaskCompletion(taskId, completed) {
     const response = await fetch(`${API_BASE_URL}/task/${taskId}`, {
         method: 'PUT',

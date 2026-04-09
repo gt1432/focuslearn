@@ -11,14 +11,16 @@ const taskSchema = new mongoose.Schema({
         title: String,
         url: String,
         type: { type: String, enum: ['video', 'article', 'other'] },
-        description: String
-    }],
-    quiz: {
-        question: String,
-        options: [String],
-        correctAnswer: Number, // Index of the correct option
+        description: String,
+        questions: [{
+            question: String,
+            options: [String],
+            correctAnswer: Number // Index of the correct option
+        }],
+        bestScore: { type: Number, default: 0 },
+        attempts: { type: Number, default: 0 },
         completed: { type: Boolean, default: false }
-    }
+    }]
 }, { timestamps: true });
 
 export default mongoose.model('Task', taskSchema);

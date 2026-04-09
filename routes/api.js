@@ -21,7 +21,6 @@ router.post('/goal', async (req, res) => {
         await goal.save();
 
         if (predefinedRoadmaps[title]) {
-            // Use exact predefined tracks!
             const track = predefinedRoadmaps[title];
             for (const item of track) {
                 const task = new Task({
@@ -33,34 +32,33 @@ router.post('/goal', async (req, res) => {
                             title: `Video Lesson: ${item.title}`,
                             url: item.url,
                             type: 'video',
-                            description: `This specific video was curated to teach you ${item.title}.`
+                            description: `Comprehensive video guide for ${item.title}.`,
+                            questions: item.questions || []
                         }
-                    ],
-                    quiz: item.quiz // Inject the interrelated quiz!
+                    ]
                 });
                 await task.save();
                 generatedTasks.push(task._id);
             }
         } else {
-            // Smart AI Mock: Generate tasks with generic descriptions and quizzes
+            // Smart AI Mock for undefined tracks
             for (let i = 1; i <= duration; i++) {
                 const task = new Task({
                     goalId: goal._id,
                     day: i,
-                    title: `Master ${title} - Part ${i}`,
+                    title: `${title} - Part ${i}`,
                     resources: [
                         { 
-                            title: `YouTube Intro to ${title}`, 
-                            url: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`Intro to ${title} part ${i}`), 
+                            title: `Resource for ${title}`, 
+                            url: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${title} day ${i}`), 
                             type: 'video',
-                            description: `This video visually breaks down the core concepts of part ${i}.`
+                            description: `Curated learning material for ${title} stage ${i}.`,
+                            questions: [
+                                { question: `Main concept of ${title} part ${i}?`, options: ["Option A", "Option B", "Correct Choice", "None"], correctAnswer: 2 },
+                                { question: `How to apply ${title} step ${i}?`, options: ["Method 1", "Correct Method", "Method 3", "N/A"], correctAnswer: 1 }
+                            ]
                         }
-                    ],
-                    quiz: {
-                        question: `What is a core concept of ${title} part ${i}?`,
-                        options: ["Concept A", "Concept B", "The Fundamentals", "Advanced Logic"],
-                        correctAnswer: 2
-                    }
+                    ]
                 });
                 await task.save();
                 generatedTasks.push(task._id);
@@ -356,32 +354,81 @@ router.put('/task/:id/skip', async (req, res) => {
     } catch(e) { res.status(500).json({ error: 'Failed to skip task' }); }
 });
 
-// Add after POST /tasks/:id/notes or similar
-router.post('/tasks/:id/quiz', async (req, res) => {
+// Fetch Quizzes for a Task
+router.get('/quiz/:taskId', async (req, res) => {
     try {
-        const { answer } = req.body;
-        const task = await Task.findById(req.params.id);
-        if (!task || !task.quiz) return res.status(404).json({ error: 'Task or Quiz not found' });
-
-        const isCorrect = task.quiz.correctAnswer === parseInt(answer);
-        if (isCorrect) {
-            task.quiz.completed = true;
-            await task.save();
-            
-            // Reward XP to User
-            const goal = await Goal.findById(task.goalId);
-            if (goal) {
-                const user = await User.findById(goal.userId);
-                if (user) {
-                    user.totalFocusTime += 5; // Reward with 5 "bonus" points/mins
-                    await user.save();
-                }
-            }
-        }
-
-        res.json({ isCorrect, correctAnswer: task.quiz.correctAnswer });
+        const task = await Task.findById(req.params.taskId);
+        if (!task) return res.status(404).json({ error: 'Task not found' });
+        
+        const resources = task.resources.map(r => ({
+            title: r.title,
+            questions: r.questions.map(q => ({
+                question: q.question,
+                options: q.options
+            }))
+        }));
+        
+        res.json(resources);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to process quiz' });
+        res.status(500).json({ error: 'Failed to fetch quiz' });
+    }
+});
+
+// Update submit to include cumulative accuracy
+router.post('/quiz/submit', async (req, res) => {
+    try {
+        const { taskId, resourceIndex, answers, userId } = req.body;
+        const task = await Task.findById(taskId);
+        if (!task) return res.status(404).json({ error: 'Task not found' });
+
+        const resource = task.resources[resourceIndex];
+        if (!resource || !resource.questions) return res.status(404).json({ error: 'Resource or Questions not found' });
+
+        let correctCount = 0;
+        resource.questions.forEach((q, idx) => {
+            if (q.correctAnswer === answers[idx]) {
+                correctCount++;
+            }
+        });
+
+        const score = Math.round((correctCount / resource.questions.length) * 100);
+        resource.attempts += 1;
+        if (score > (resource.bestScore || 0)) resource.bestScore = score;
+        if (score >= 80) resource.completed = true;
+
+        await task.save();
+
+        // Calculate User Accuracy
+        const userGoals = await Goal.find({ userId });
+        const goalIds = userGoals.map(g => g._id);
+        const userTasks = await Task.find({ goalId: { $in: goalIds } });
+        
+        let totalBestScores = 0;
+        let countedResources = 0;
+        userTasks.forEach(t => {
+            t.resources.forEach(r => {
+                if (r.bestScore > 0) {
+                    totalBestScores += r.bestScore;
+                    countedResources++;
+                }
+            });
+        });
+
+        const accuracy = countedResources > 0 ? Math.round(totalBestScores / countedResources) : 0;
+
+        // FeedBack Logic
+        let feedback = "Nice work!";
+        if (score < 50) feedback = "You should revise this topic";
+        else if (score >= 80) feedback = "You're ready for next step!";
+
+        res.json({ 
+            score, 
+            accuracy,
+            feedback,
+            correctAnswers: resource.questions.map(q => q.correctAnswer)
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to process quiz submission' });
     }
 });
 
