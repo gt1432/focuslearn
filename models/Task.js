@@ -12,7 +12,13 @@ const taskSchema = new mongoose.Schema({
         url: String,
         type: { type: String, enum: ['video', 'article', 'other'] },
         description: String
-    }]
+    }],
+    quiz: {
+        question: String,
+        options: [String],
+        correctAnswer: Number, // Index of the correct option
+        completed: { type: Boolean, default: false }
+    }
 }, { timestamps: true });
 
 export default mongoose.model('Task', taskSchema);

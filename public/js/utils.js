@@ -154,3 +154,11 @@ export async function markReminderRead(id) {
 export async function skipTask(id) {
     return await fetch(`${API_BASE_URL}/task/${id}/skip`, { method: 'PUT' }).then(r=>r.json());
 }
+
+export async function submitTaskQuiz(taskId, answer) {
+    return await fetch(`/api/tasks/${taskId}/quiz`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer })
+    }).then(r => r.json());
+}

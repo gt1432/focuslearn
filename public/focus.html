@@ -8,8 +8,25 @@
     <!-- Include Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: var(--font-main); }
-        .app-container { min-height: 100vh; display: flex; }
+        body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            font-family: var(--font-main); 
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Immersive Background */
+        .immersive-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--focus-bg, url('/images/hero_bg.png')) center/cover no-repeat;
+            z-index: -1;
+            filter: brightness(0.2) blur(5px);
+            transition: background 0.8s ease;
+        }
+
+        .app-container { min-height: 100vh; display: flex; position: relative; z-index: 1; }
         
         .zen-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 2rem; }
         
@@ -25,27 +42,80 @@
         .controls { display: flex; gap: 1rem; z-index: 10; margin-bottom: 3rem; }
         .controls button { font-size: 1.2rem; padding: 0.75rem 2rem; border-radius: 999px; }
         
-        .task-detail { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; width: 100%; max-width: 800px; backdrop-filter: blur(10px); }
+        .task-detail { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; width: 100%; max-width: 800px; backdrop-filter: blur(15px); }
         
         .notes-area { width: 100%; height: 200px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 1rem; border-radius: 8px; font-family: monospace; resize: vertical; margin-top: 1rem; }
         
         .markdown-preview { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem; display: none; min-height: 200px; }
-        
-        .markdown-preview h1, .markdown-preview h2, .markdown-preview h3 { margin-top: 0; }
         
         #exitBtn { position: absolute; top: 2rem; left: 2rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         #exitBtn:hover { background: rgba(255,255,255,0.1); }
         
         #fullscreenBtn { position: absolute; top: 2rem; right: 2rem; background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; transition: 0.2s;}
         #fullscreenBtn:hover { background: var(--primary); color: #fff; box-shadow: 0 0 15px rgba(99,102,241,0.5);}
+
+        /* Quiz UI */
+        .quiz-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            border-radius: 24px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .quiz-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .quiz-option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            font-size: 1.1rem;
+        }
+
+        .quiz-option-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            transform: translateX(10px);
+        }
+
+        .quiz-option-btn.correct { background: var(--success); border-color: var(--success); }
+        .quiz-option-btn.wrong { background: var(--danger); border-color: var(--danger); }
     </style>
 </head>
 <body>
+    <div class="immersive-bg" id="immersiveBg"></div>
+
     <div class="app-container">
         <!-- Main Workspace -->
         <main class="zen-workspace animate-fade-in" id="workspace">
             <button id="exitBtn" onclick="window.location.href='/dashboard.html'">← Back to Dashboard</button>
-            <button id="fullscreenBtn" onclick="toggleFullscreen()">Distraction Free</button>
+            <button id="fullscreenBtn" onclick="window.toggleFullscreen()">Distraction Free</button>
 
             <!-- Circular Timer -->
             <div class="timer-container">
@@ -79,35 +149,50 @@
                     </div>
                 </div>
 
-                <textarea id="notesArea" class="notes-area" placeholder="Type your notes in Markdown here... (e.g. **bold**, - list item)"></textarea>
+                <textarea id="notesArea" class="notes-area" placeholder="Type your notes in Markdown here..."></textarea>
                 <div id="markdownPreview" class="markdown-preview"></div>
                 <div id="saveToast" style="display:none; color: var(--success); font-size: 0.875rem; margin-top: 0.5rem;">Notes saved automatically to database!</div>
+                
+                <button class="btn mb-4" style="width:100%; margin-top: 2rem; background: var(--success);" id="finishTaskBtn">Finish & Knowledge Check</button>
             </div>
-
         </main>
     </div>
 
+    <!-- Daily Challenge Overlay -->
+    <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-card animate-fade-in">
+            <h2 style="color:var(--primary); margin-bottom: 0.5rem;">Daily Challenge 🧠</h2>
+            <p class="text-muted" id="quizInterrelated">Connecting your progress from previous steps...</p>
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 2rem 0;">
+            <h3 id="quizQuestion">Loading Question...</h3>
+            <div class="quiz-options" id="quizOptions"></div>
+            <p id="quizFeedback" style="margin-top: 2rem; font-weight: 600; display: none;"></p>
+            <button class="btn mt-4" id="closeQuizBtn" style="display:none; width:100%;">Return to Dashboard</button>
+        </div>
+    </div>
+
     <script type="module">
-        import { getOrCreateUserId, fetchUserGoals, syncUserFocusTime, updateTaskNotes } from './js/utils.js';
+        import { getOrCreateUserId, fetchUserGoals, syncUserFocusTime, updateTaskNotes, submitTaskQuiz } from './js/utils.js';
         
         let timerInterval;
-        const FULL_TIME = 25 * 60; // 25 minutes
+        const FULL_TIME = 25 * 60; 
         let timeLeft = FULL_TIME; 
         let isRunning = false;
+        let currentTask = null;
         
         const timeDisplay = document.getElementById('timeDisplay');
         const timerProgress = document.getElementById('timerProgress');
         const startBtn = document.getElementById('startBtn');
         const pauseBtn = document.getElementById('pauseBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const finishTaskBtn = document.getElementById('finishTaskBtn');
 
-        const CIRCUMFERENCE = 2 * Math.PI * 140; // ~879
+        const CIRCUMFERENCE = 2 * Math.PI * 140; 
 
         function updateDisplay() {
             const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
             const s = (timeLeft % 60).toString().padStart(2, '0');
             timeDisplay.textContent = `${m}:${s}`;
-            
             const strokeOffset = CIRCUMFERENCE - (timeLeft / FULL_TIME) * CIRCUMFERENCE;
             timerProgress.style.strokeDashoffset = strokeOffset;
         }
@@ -117,10 +202,8 @@
             isRunning = false;
             startBtn.style.display = 'block';
             pauseBtn.style.display = 'none';
-            alert('Focus session complete! +25 mins synced.');
-            try {
-                await syncUserFocusTime(25);
-            } catch(e) { console.error('Failed to sync time'); }
+            alert('Focus session complete! Your hard work is paying off.');
+            try { await syncUserFocusTime(25); } catch(e) {}
         }
 
         startBtn.addEventListener('click', () => {
@@ -129,12 +212,7 @@
             startBtn.style.display = 'none';
             pauseBtn.style.display = 'block';
             timerInterval = setInterval(() => {
-                if (timeLeft > 0) {
-                    timeLeft--;
-                    updateDisplay();
-                } else {
-                    handletimerComplete();
-                }
+                if (timeLeft > 0) { timeLeft--; updateDisplay(); } else { handletimerComplete(); }
             }, 1000);
         });
 
@@ -153,14 +231,11 @@
             updateDisplay();
             startBtn.style.display = 'block';
             pauseBtn.style.display = 'none';
-            startBtn.textContent = 'Start Focus';
         });
 
         window.toggleFullscreen = () => {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    alert(`Error attempting to enable fullscreen: ${err.message}`);
-                });
+                document.documentElement.requestFullscreen();
                 document.getElementById('fullscreenBtn').textContent = 'Exit Distraction Free';
             } else {
                 document.exitFullscreen();
@@ -168,60 +243,90 @@
             }
         };
 
-        // UI & Notes Logic
         const activeTaskId = localStorage.getItem('focuslearn_activeTask');
         const notesArea = document.getElementById('notesArea');
         const markdownPreview = document.getElementById('markdownPreview');
-        const togglePreviewBtn = document.getElementById('togglePreviewBtn');
-        let isPreviewing = false;
-
-        togglePreviewBtn.addEventListener('click', () => {
-           isPreviewing = !isPreviewing;
-           if(isPreviewing) {
-               notesArea.style.display = 'none';
-               markdownPreview.style.display = 'block';
-               togglePreviewBtn.textContent = 'Edit Notes';
-               markdownPreview.innerHTML = marked.parse(notesArea.value || '*No notes yet...*');
-           } else {
-               notesArea.style.display = 'block';
-               markdownPreview.style.display = 'none';
-               togglePreviewBtn.textContent = 'Show Preview';
-           }
-        });
 
         document.getElementById('saveNotesBtn').addEventListener('click', async () => {
-            if(!activeTaskId) return alert('No active task to attach notes to.');
-            const btn = document.getElementById('saveNotesBtn');
-            btn.disabled = true;
+            if(!activeTaskId) return;
             try {
                 await updateTaskNotes(activeTaskId, notesArea.value);
                 const toast = document.getElementById('saveToast');
                 toast.style.display = 'block';
                 setTimeout(() => toast.style.display='none', 3000);
-            } catch(e) {
-                alert('Save failed');
+            } catch(e) {}
+        });
+
+        finishTaskBtn.addEventListener('click', () => {
+            if(!currentTask || !currentTask.quiz) return alert('No quiz available for this task.');
+            showQuiz();
+        });
+
+        function showQuiz() {
+            const quiz = currentTask.quiz;
+            document.getElementById('quizOverlay').style.display = 'flex';
+            document.getElementById('quizQuestion').textContent = quiz.question;
+            const optionsContainer = document.getElementById('quizOptions');
+            optionsContainer.innerHTML = '';
+            
+            quiz.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => handleQuizSubmission(idx, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        async function handleQuizSubmission(index, btn) {
+            const feedback = document.getElementById('quizFeedback');
+            const result = await submitTaskQuiz(activeTaskId, index);
+            
+            feedback.style.display = 'block';
+            const allBtns = document.querySelectorAll('.quiz-option-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            if(result.isCorrect) {
+                 btn.classList.add('correct');
+                 feedback.textContent = "Correct! +5 Bonus XP awarded! ⚡";
+                 feedback.style.color = "var(--success)";
+            } else {
+                 btn.classList.add('wrong');
+                 feedback.textContent = `Incorrect. The knowledge will sink in soon! Correct was: ${currentTask.quiz.options[result.correctAnswer]}`;
+                 feedback.style.color = "var(--danger)";
             }
-            btn.disabled = false;
+            document.getElementById('closeQuizBtn').style.display = 'block';
+        }
+
+        document.getElementById('closeQuizBtn').addEventListener('click', () => {
+            window.location.href = '/dashboard.html';
         });
 
         async function loadTask() {
-            if(!activeTaskId) {
-                 document.getElementById('taskTitle').textContent = 'Zen Mode (No task linked)';
-                 return;
-            }
+            if(!activeTaskId) return;
             try {
                 const goals = await fetchUserGoals();
-                let foundTask = null;
+                let foundGoal = null;
                 goals.forEach(g => {
                     const t = g.tasks.find(ts => ts._id === activeTaskId);
-                    if(t) foundTask = t;
+                    if(t) { foundTask = t; foundGoal = g; }
                 });
                 
+                var foundTask; // Hoisting fix
                 if(foundTask) {
+                    currentTask = foundTask;
                     document.getElementById('taskTitle').textContent = foundTask.title;
                     document.getElementById('taskDay').textContent = `Day ${foundTask.day}`;
                     notesArea.value = foundTask.notes || '';
                     
+                    // Set Theme Background
+                    let bg = "url('/images/hero_bg.png')";
+                    if(foundGoal.title === 'Web Development') bg = "url('/images/course_web_dev.png')";
+                    else if(foundGoal.title === 'Data Science') bg = "url('/images/course_data_sci.png')";
+                    else if(foundGoal.title === 'Artificial Intelligence') bg = "url('/images/course_ai.png')";
+                    else if(foundGoal.title === 'UI/UX Design') bg = "url('/images/course_design.png')";
+                    document.getElementById('immersiveBg').style.setProperty('--focus-bg', bg);
+
                     if(foundTask.resources && foundTask.resources.length > 0) {
                         let resHtml = '<h4>Task Resources:</h4><ul style="padding-left: 1.5rem; color:#cbd5e1;">';
                         foundTask.resources.forEach(r => {
@@ -230,17 +335,12 @@
                         resHtml += '</ul>';
                         document.getElementById('resourceLinks').innerHTML = resHtml;
                     }
-                } else {
-                    document.getElementById('taskTitle').textContent = 'Task Not Found';
                 }
             } catch(e) {}
         }
         
-        initDisplay();
-        function initDisplay() {
-            updateDisplay();
-            loadTask();
-        }
+        loadTask();
+        updateDisplay();
     </script>
 </body>
 </html>

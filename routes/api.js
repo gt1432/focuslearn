@@ -20,8 +20,6 @@ router.post('/goal', async (req, res) => {
         const goal = new Goal({ title, duration, userId });
         await goal.save();
 
-        const generatedTasks = [];
-        
         if (predefinedRoadmaps[title]) {
             // Use exact predefined tracks!
             const track = predefinedRoadmaps[title];
@@ -37,13 +35,14 @@ router.post('/goal', async (req, res) => {
                             type: 'video',
                             description: `This specific video was curated to teach you ${item.title}.`
                         }
-                    ]
+                    ],
+                    quiz: item.quiz // Inject the interrelated quiz!
                 });
                 await task.save();
                 generatedTasks.push(task._id);
             }
         } else {
-            // Smart AI Mock: Generate tasks with generic descriptions
+            // Smart AI Mock: Generate tasks with generic descriptions and quizzes
             for (let i = 1; i <= duration; i++) {
                 const task = new Task({
                     goalId: goal._id,
@@ -54,15 +53,14 @@ router.post('/goal', async (req, res) => {
                             title: `YouTube Intro to ${title}`, 
                             url: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`Intro to ${title} part ${i}`), 
                             type: 'video',
-                            description: `This video visually breaks down the core concepts of part ${i}, making it easier to grasp the fundamentals.`
-                        },
-                        { 
-                            title: `Step-by-Step Guide: ${title}`, 
-                            url: '#', 
-                            type: 'article',
-                            description: `A detailed text-based walkthrough perfect for diving deeper and referencing code or theory.`
+                            description: `This video visually breaks down the core concepts of part ${i}.`
                         }
-                    ]
+                    ],
+                    quiz: {
+                        question: `What is a core concept of ${title} part ${i}?`,
+                        options: ["Concept A", "Concept B", "The Fundamentals", "Advanced Logic"],
+                        correctAnswer: 2
+                    }
                 });
                 await task.save();
                 generatedTasks.push(task._id);
@@ -356,6 +354,35 @@ router.put('/task/:id/skip', async (req, res) => {
         const task = await Task.findByIdAndUpdate(req.params.id, { completed: true }, { new: true });
         res.json(task);
     } catch(e) { res.status(500).json({ error: 'Failed to skip task' }); }
+});
+
+// Add after POST /tasks/:id/notes or similar
+router.post('/tasks/:id/quiz', async (req, res) => {
+    try {
+        const { answer } = req.body;
+        const task = await Task.findById(req.params.id);
+        if (!task || !task.quiz) return res.status(404).json({ error: 'Task or Quiz not found' });
+
+        const isCorrect = task.quiz.correctAnswer === parseInt(answer);
+        if (isCorrect) {
+            task.quiz.completed = true;
+            await task.save();
+            
+            // Reward XP to User
+            const goal = await Goal.findById(task.goalId);
+            if (goal) {
+                const user = await User.findById(goal.userId);
+                if (user) {
+                    user.totalFocusTime += 5; // Reward with 5 "bonus" points/mins
+                    await user.save();
+                }
+            }
+        }
+
+        res.json({ isCorrect, correctAnswer: task.quiz.correctAnswer });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to process quiz' });
+    }
 });
 
 export default router;
