@@ -141,9 +141,79 @@
             animation: float 12s infinite ease-in-out;
             pointer-events: none; /* KEY FIX: Stop orbs from blocking clicks */
         }
+        /* Scrolling Header */
+        .scrolling-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: #ef4444; /* Match red button */
+            color: #fff;
+            padding: 0.5rem 0;
+            z-index: 100;
+            overflow: hidden;
+            white-space: nowrap;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .scroll-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
+        /* Adjusted Hero for Header */
+        .hero-section {
+            padding-top: 3rem;
+        }
+
+        /* Single Line Footer */
+        .footer-line {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-line .footer-brand {
+            flex: 2;
+        }
+
+        .footer-line .footer-links {
+            flex: 1;
+            display: flex;
+            gap: 2rem;
+            justify-content: flex-end;
+        }
+
+        .footer-links ul {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer-links h3 {
+            display: none; /* Hide headings for single line view */
+        }
     </style>
 </head>
 <body>
+    <div class="scrolling-header">
+        <div class="scroll-text">
+            Welcome to FocusLearn — Master Web Development, AI, and Data Science — Start your journey today! — Welcome to FocusLearn — Master Web Development, AI, and Data Science — Start your journey today!
+        </div>
+    </div>
     <div class="hero-section">
         <div class="glow-orb" style="top: 10%; left: -10%;"></div>
         <div class="glow-orb" style="bottom: 10%; right: -10%; animation-delay: -5s;"></div>
@@ -162,41 +232,23 @@
     </div>
 
     <footer>
-        <div class="footer-grid">
+        <div class="footer-line">
             <div class="footer-brand">
-                <h2>FocusLearn</h2>
-                <p>The next generation of personalized education. Leveraging AI to bridge the gap between abstract goals and concrete daily execution.</p>
+                <h2 style="margin:0; font-size: 1.5rem;">FocusLearn</h2>
             </div>
             <div class="footer-links">
-                <h3>Product</h3>
                 <ul>
-                    <li><a href="#">AI Roadmaps</a></li>
-                    <li><a href="#">Zen Focus Mode</a></li>
-                    <li><a href="#">Gamified Progress</a></li>
-                    <li><a href="#">Curated Resources</a></li>
+                    <li><a href="#">Roadmaps</a></li>
+                    <li><a href="#">Zen Mode</a></li>
+                    <li><a href="#">Gamified</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Privacy</a></li>
+                    <li><a href="#">Contact</a></li>
                 </ul>
             </div>
-            <div class="footer-links">
-                <h3>About</h3>
-                <ul>
-                    <li><a href="#">Our Vision</a></li>
-                    <li><a href="#">Expert Mentors</a></li>
-                    <li><a href="#">Terms of Use</a></li>
-                    <li><a href="#">Privacy Policy</a></li>
-                </ul>
+            <div style="font-size: 0.8rem;">
+                &copy; 2026 FocusLearn AI
             </div>
-            <div class="footer-links">
-                <h3>Support</h3>
-                <ul>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="#">AI Assistant</a></li>
-                    <li><a href="#">Community Forum</a></li>
-                    <li><a href="#">Contact Us</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="copyright">
-            <p>&copy; 2026 FocusLearn AI. Elevating the way we learn, one task at a time.</p>
         </div>
     </footer>
 
