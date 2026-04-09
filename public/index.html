@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusLearn - AI-Powered Learning</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(to right, var(--primary), #a5b4fc); -webkit-background-clip: text; color: transparent; background-clip: text; }
+        .hero p { font-size: 1.25rem; color: var(--text-muted); max-width: 600px; margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <main class="main-content hero animate-fade-in">
+            <h1>FocusLearn</h1>
+            <p>Convert your goals into structured, step-by-step learning paths driven by AI.</p>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="/login.html" class="btn">Log In</a>
+                <a href="/signup.html" class="btn btn-outline">Sign Up</a>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Redirect if already logged in
+        if (localStorage.getItem('focuslearn_userId')) {
+            window.location.href = '/dashboard.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress & Mentor - FocusLearn</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        
+        /* Mentor Chat */
+        .chat-box { height: 400px; display: flex; flex-direction: column; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+        .chat-messages { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .message { padding: 0.75rem 1rem; border-radius: 8px; max-width: 80%; line-height: 1.4; }
+        .message-user { background-color: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+        .message-mentor { background-color: var(--card); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 0; }
+        .chat-input-area { display: flex; padding: 1rem; background-color: var(--card); border-top: 1px solid var(--border); gap: 0.5rem;}
+        
+        /* Stats Grid (Streak, Time) */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;}
+        .stat-card { text-align: center; }
+        .stat-val { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem; }
+        
+        /* Gamification */
+        .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+        .badge { background: var(--bg); border: 1px solid var(--border); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto; opacity: 0.4; filter: grayscale(100%); transition: all 0.3s; }
+        .badge.earned { opacity: 1; filter: grayscale(0%); box-shadow: 0 0 15px rgba(99,102,241, 0.4); border-color: var(--primary); }
+        
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">FocusLearn</div>
+            <nav class="nav-links">
+                <a href="/dashboard.html" class="nav-item" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="/focus.html" class="nav-item" data-page="focus"><span>Focus Mode</span></a>
+                <a href="/progress.html" class="nav-item active" data-page="progress"><span>Progress</span></a>
+                <a href="/new-goal.html" class="nav-item" data-page="settings"><span>New Goal</span></a>
+            </nav>
+            <div style="margin-top: auto;">
+                <button class="btn btn-outline" style="width: 100%; margin-bottom: 1rem;" onclick="window.toggleAppTheme()">Toggle Theme</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content animate-fade-in">
+            <h1 class="mb-4">Analytics & Progress</h1>
+
+            <div class="stats-grid">
+                <div class="card stat-card">
+                    <div class="stat-val" id="xpDisplay">0</div>
+                    <div class="text-muted">Total XP</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-val" id="streakDisplay">0</div>
+                    <div class="text-muted">🔥 Day Streak</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-val" id="hoursDisplay">0</div>
+                    <div class="text-muted">Focus Hours</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Analytics Chart -->
+                <div class="card" style="height: 400px;">
+                    <h2 class="mb-2">Daily Actions</h2>
+                    <canvas id="progressChart"></canvas>
+                </div>
+
+                <!-- Gamification Badges -->
+                <div class="card" style="height: 400px; overflow-y:auto;">
+                    <h2>Earned Badges</h2>
+                    <div class="badge-grid" id="badgeGrid">
+                        <div class="text-center">
+                            <div class="badge" id="badge1">🌱</div>
+                            <div class="mt-2 text-muted" style="font-size:0.875rem">Starter</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="badge" id="badge2">🔥</div>
+                            <div class="mt-2 text-muted" style="font-size:0.875rem">5 Tasks</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="badge" id="badge3">🎓</div>
+                            <div class="mt-2 text-muted" style="font-size:0.875rem">Graduated</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="badge" id="badge4">⭐</div>
+                            <div class="mt-2 text-muted" style="font-size:0.875rem">10+ Hours</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Mentor Chat -->
+                <div class="card" style="padding: 0;">
+                    <h2 style="padding: 1.5rem 1.5rem 0.5rem; margin:0;">AI Mentor</h2>
+                    <div class="chat-box">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message message-mentor">Hello! I am your AI learning mentor. How can I help you with your goals today?</div>
+                        </div>
+                        <form class="chat-input-area" id="chatForm">
+                            <input type="text" id="chatInput" placeholder="Ask a question..." required>
+                            <button type="submit" class="btn">Send</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script type="module">
+        import { fetchUserGoals, fetchUserStats, fetchMentorChats, sendMentorMessage, setActiveNav, initTheme, toggleTheme } from './js/utils.js';
+        
+        initTheme();
+        window.toggleAppTheme = toggleTheme;
+        setActiveNav('progress');
+
+        async function loadAnalytics() {
+            try {
+                // 1. Load User Stats
+                const userStats = await fetchUserStats();
+                document.getElementById('streakDisplay').textContent = userStats.currentStreak || 0;
+                
+                const focusMins = userStats.totalFocusTime || 0;
+                document.getElementById('hoursDisplay').textContent = (focusMins / 60).toFixed(1);
+
+                if (focusMins >= 600) document.getElementById('badge4').classList.add('earned');
+
+                // 2. Load Goals & Gamification
+                const goals = await fetchUserGoals();
+                let completedTasks = 0;
+                let isGraduated = false;
+
+                // For chart: tasks created vs tasks completed mapped to days
+                const daysMap = { 'Day 1': 0, 'Day 2': 0, 'Day 3':0, 'Day 4':0, 'Day 5':0 };
+
+                goals.forEach(goal => {
+                    let goalTaskCount = 0;
+                    goal.tasks.forEach(t => {
+                        if(t.completed) {
+                            completedTasks++;
+                            goalTaskCount++;
+                            const dLabel = `Day ${t.day > 5 ? 5 : t.day}`; 
+                            if(daysMap[dLabel] !== undefined) daysMap[dLabel]++;
+                        }
+                    });
+                    if(goalTaskCount === goal.tasks.length && goal.tasks.length > 0) isGraduated = true;
+                });
+
+                document.getElementById('xpDisplay').textContent = `${completedTasks * 50}`;
+
+                if (completedTasks > 0) document.getElementById('badge1').classList.add('earned');
+                if (completedTasks >= 5) document.getElementById('badge2').classList.add('earned');
+                if (isGraduated) document.getElementById('badge3').classList.add('earned');
+
+                // 3. Render Chart
+                renderChart(Object.keys(daysMap), Object.values(daysMap));
+
+            } catch (err) {
+                console.error('Error loading gamification', err);
+            }
+        }
+
+        function renderChart(labels, dataArr) {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            // Extract CSS var for chart color
+            const style = getComputedStyle(document.body);
+            const primaryColor = style.getPropertyValue('--primary').trim() || '#6366f1';
+            const textColor = style.getPropertyValue('--text').trim() || '#e2e8f0';
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tasks Completed',
+                        data: dataArr,
+                        backgroundColor: primaryColor,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.2)' }, ticks: { color: textColor } },
+                        x: { grid: { display: false }, ticks: { color: textColor } }
+                    },
+                    plugins: { legend: { labels: { color: textColor } }}
+                }
+            });
+        }
+
+        // Chat Logic
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+
+        function appendMessage(msg, type) {
+            const div = document.createElement('div');
+            div.className = `message message-${type}`;
+            div.textContent = msg;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function loadChats() {
+            try {
+                const msgs = await fetchMentorChats();
+                chatMessages.innerHTML = '';
+                if(msgs.length === 0) {
+                     appendMessage("Hello! I am your AI learning mentor. How can I help you with your goals today?", 'mentor');
+                } else {
+                    msgs.forEach(m => appendMessage(m.message, m.sender));
+                }
+            } catch (err) {
+                console.error('Error loading chats');
+            }
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            appendMessage(text, 'user');
+            chatInput.value = '';
+            
+            try {
+                const newChats = await sendMentorMessage(text);
+                const lastMsg = newChats[newChats.length - 1];
+                if(lastMsg.sender === 'mentor') {
+                     appendMessage(lastMsg.message, 'mentor');
+                }
+            } catch (err) {
+                appendMessage("Error sending message", 'mentor');
+            }
+        });
+
+        loadAnalytics();
+        loadChats();
+    </script>
+</body>
+</html>

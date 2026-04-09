@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Focus Mode - FocusLearn</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <!-- Include Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: var(--font-main); }
+        .app-container { min-height: 100vh; display: flex; }
+        
+        .zen-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 2rem; }
+        
+        .timer-container { position: relative; width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
+        
+        .timer-circle { width: 100%; height: 100%; position: absolute; top:0; left:0; transform: rotate(-90deg); }
+        .timer-circle circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+        .timer-circle .bg { stroke: rgba(255,255,255,0.05); }
+        .timer-circle .progress { stroke: var(--primary); stroke-dasharray: 879; /* 2 * pi * r (140) */ stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; filter: drop-shadow(0 0 10px var(--primary)); }
+        
+        .timer-display { font-size: 5rem; font-weight: 800; font-variant-numeric: tabular-nums; z-index: 10; text-shadow: 0 0 20px rgba(99,102,241,0.5); }
+        
+        .controls { display: flex; gap: 1rem; z-index: 10; margin-bottom: 3rem; }
+        .controls button { font-size: 1.2rem; padding: 0.75rem 2rem; border-radius: 999px; }
+        
+        .task-detail { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; width: 100%; max-width: 800px; backdrop-filter: blur(10px); }
+        
+        .notes-area { width: 100%; height: 200px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 1rem; border-radius: 8px; font-family: monospace; resize: vertical; margin-top: 1rem; }
+        
+        .markdown-preview { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem; display: none; min-height: 200px; }
+        
+        .markdown-preview h1, .markdown-preview h2, .markdown-preview h3 { margin-top: 0; }
+        
+        #exitBtn { position: absolute; top: 2rem; left: 2rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        #exitBtn:hover { background: rgba(255,255,255,0.1); }
+        
+        #fullscreenBtn { position: absolute; top: 2rem; right: 2rem; background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; transition: 0.2s;}
+        #fullscreenBtn:hover { background: var(--primary); color: #fff; box-shadow: 0 0 15px rgba(99,102,241,0.5);}
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Workspace -->
+        <main class="zen-workspace animate-fade-in" id="workspace">
+            <button id="exitBtn" onclick="window.location.href='/dashboard.html'">← Back to Dashboard</button>
+            <button id="fullscreenBtn" onclick="toggleFullscreen()">Distraction Free</button>
+
+            <!-- Circular Timer -->
+            <div class="timer-container">
+                <svg class="timer-circle" viewBox="0 0 300 300">
+                    <circle class="bg" cx="150" cy="150" r="140"></circle>
+                    <circle class="progress" id="timerProgress" cx="150" cy="150" r="140"></circle>
+                </svg>
+                <div class="timer-display" id="timeDisplay">25:00</div>
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="startBtn">Start Focus</button>
+                <button class="btn btn-outline" id="pauseBtn" style="display:none; border-color: rgba(255,255,255,0.2); color:#fff;">Pause</button>
+                <button class="btn btn-outline" id="resetBtn" style="border-color: rgba(255,255,255,0.2); color:#fff;">Reset</button>
+            </div>
+
+            <!-- Task Detail & Smart Notes -->
+            <div class="task-detail">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1rem;">
+                    <h2 id="taskTitle" style="margin:0;">Loading Task...</h2>
+                    <span class="text-muted" id="taskDay"></span>
+                </div>
+                
+                <div id="resourceLinks" style="margin-bottom: 2rem;"></div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; color:var(--primary);">Smart Notes</h3>
+                    <div>
+                        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" id="togglePreviewBtn">Show Preview</button>
+                        <button class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" id="saveNotesBtn">Save Output</button>
+                    </div>
+                </div>
+
+                <textarea id="notesArea" class="notes-area" placeholder="Type your notes in Markdown here... (e.g. **bold**, - list item)"></textarea>
+                <div id="markdownPreview" class="markdown-preview"></div>
+                <div id="saveToast" style="display:none; color: var(--success); font-size: 0.875rem; margin-top: 0.5rem;">Notes saved automatically to database!</div>
+            </div>
+
+        </main>
+    </div>
+
+    <script type="module">
+        import { getOrCreateUserId, fetchUserGoals, syncUserFocusTime, updateTaskNotes } from './js/utils.js';
+        
+        let timerInterval;
+        const FULL_TIME = 25 * 60; // 25 minutes
+        let timeLeft = FULL_TIME; 
+        let isRunning = false;
+        
+        const timeDisplay = document.getElementById('timeDisplay');
+        const timerProgress = document.getElementById('timerProgress');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const CIRCUMFERENCE = 2 * Math.PI * 140; // ~879
+
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            timeDisplay.textContent = `${m}:${s}`;
+            
+            const strokeOffset = CIRCUMFERENCE - (timeLeft / FULL_TIME) * CIRCUMFERENCE;
+            timerProgress.style.strokeDashoffset = strokeOffset;
+        }
+
+        async function handletimerComplete() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.style.display = 'block';
+            pauseBtn.style.display = 'none';
+            alert('Focus session complete! +25 mins synced.');
+            try {
+                await syncUserFocusTime(25);
+            } catch(e) { console.error('Failed to sync time'); }
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (isRunning) return;
+            isRunning = true;
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'block';
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateDisplay();
+                } else {
+                    handletimerComplete();
+                }
+            }, 1000);
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.style.display = 'block';
+            pauseBtn.style.display = 'none';
+            startBtn.textContent = 'Resume';
+        });
+
+        resetBtn.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            isRunning = false;
+            timeLeft = FULL_TIME;
+            updateDisplay();
+            startBtn.style.display = 'block';
+            pauseBtn.style.display = 'none';
+            startBtn.textContent = 'Start Focus';
+        });
+
+        window.toggleFullscreen = () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+                document.getElementById('fullscreenBtn').textContent = 'Exit Distraction Free';
+            } else {
+                document.exitFullscreen();
+                document.getElementById('fullscreenBtn').textContent = 'Distraction Free';
+            }
+        };
+
+        // UI & Notes Logic
+        const activeTaskId = localStorage.getItem('focuslearn_activeTask');
+        const notesArea = document.getElementById('notesArea');
+        const markdownPreview = document.getElementById('markdownPreview');
+        const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+        let isPreviewing = false;
+
+        togglePreviewBtn.addEventListener('click', () => {
+           isPreviewing = !isPreviewing;
+           if(isPreviewing) {
+               notesArea.style.display = 'none';
+               markdownPreview.style.display = 'block';
+               togglePreviewBtn.textContent = 'Edit Notes';
+               markdownPreview.innerHTML = marked.parse(notesArea.value || '*No notes yet...*');
+           } else {
+               notesArea.style.display = 'block';
+               markdownPreview.style.display = 'none';
+               togglePreviewBtn.textContent = 'Show Preview';
+           }
+        });
+
+        document.getElementById('saveNotesBtn').addEventListener('click', async () => {
+            if(!activeTaskId) return alert('No active task to attach notes to.');
+            const btn = document.getElementById('saveNotesBtn');
+            btn.disabled = true;
+            try {
+                await updateTaskNotes(activeTaskId, notesArea.value);
+                const toast = document.getElementById('saveToast');
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display='none', 3000);
+            } catch(e) {
+                alert('Save failed');
+            }
+            btn.disabled = false;
+        });
+
+        async function loadTask() {
+            if(!activeTaskId) {
+                 document.getElementById('taskTitle').textContent = 'Zen Mode (No task linked)';
+                 return;
+            }
+            try {
+                const goals = await fetchUserGoals();
+                let foundTask = null;
+                goals.forEach(g => {
+                    const t = g.tasks.find(ts => ts._id === activeTaskId);
+                    if(t) foundTask = t;
+                });
+                
+                if(foundTask) {
+                    document.getElementById('taskTitle').textContent = foundTask.title;
+                    document.getElementById('taskDay').textContent = `Day ${foundTask.day}`;
+                    notesArea.value = foundTask.notes || '';
+                    
+                    if(foundTask.resources && foundTask.resources.length > 0) {
+                        let resHtml = '<h4>Task Resources:</h4><ul style="padding-left: 1.5rem; color:#cbd5e1;">';
+                        foundTask.resources.forEach(r => {
+                            resHtml += `<li><a href="${r.url}" target="_blank" style="color:var(--primary); text-decoration:none;">${r.title}</a></li>`;
+                        });
+                        resHtml += '</ul>';
+                        document.getElementById('resourceLinks').innerHTML = resHtml;
+                    }
+                } else {
+                    document.getElementById('taskTitle').textContent = 'Task Not Found';
+                }
+            } catch(e) {}
+        }
+        
+        initDisplay();
+        function initDisplay() {
+            updateDisplay();
+            loadTask();
+        }
+    </script>
+</body>
+</html>

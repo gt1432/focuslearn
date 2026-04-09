@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Path - FocusLearn</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(to right, var(--primary), #a5b4fc); -webkit-background-clip: text; color: transparent; background-clip: text; }
+        .logout-btn { position: absolute; top: 1rem; right: 1rem; }
+        
+        .path-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1200px; width: 100%; padding: 2rem; }
+        
+        .path-card { position: relative; height: 350px; border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .path-card::before { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(to top, rgba(15,23,42,0.95), rgba(15,23,42,0.2)); transition: 0.3s; }
+        
+        .path-card:hover { transform: translateY(-15px) scale(1.03); box-shadow: 0 20px 50px rgba(99, 102, 241, 0.4); border-color: var(--primary); }
+        .path-card:hover::before { background: linear-gradient(to top, rgba(15,23,42,0.95), rgba(99,102,241,0.3)); }
+        
+        .path-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 2rem; text-align: left; z-index: 2; }
+        .path-content h3 { font-size: 1.5rem; color: #fff; margin-bottom: 0.5rem; }
+        .path-content p { color: #cbd5e1; font-size: 0.875rem; opacity: 0; transform: translateY(20px); transition: 0.4s; }
+        
+        .path-card:hover .path-content p { opacity: 1; transform: translateY(0); }
+        
+        .setup-card { max-width: 500px; width: 100%; margin-top: 3rem; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- New Goal page acts as the main gateway before dashboard -->
+        <main class="main-content hero animate-fade-in" style="position:relative; width: 100%; align-items:center;">
+            <button class="btn btn-outline logout-btn" onclick="logout()">Log Out</button>
+
+            <h1 style="margin-top:2rem;">Choose Your Path</h1>
+            <p class="text-muted" style="margin-bottom: 2rem; font-size:1.2rem;">Select a track to instantly generate your 30-day AI Roadmap.</p>
+            
+            <div id="loadingMsg" style="display:none; color: var(--primary); font-size: 1.5rem; margin-bottom: 2rem;">Generating your AI roadmap... Please wait.</div>
+
+            <div class="path-grid" id="pathGrid">
+                <!-- Visual Cards -->
+                <div class="path-card" style="background-image: url('/images/course_web_dev.png');" onclick="autoGenerate('Web Development')">
+                    <div class="path-content">
+                        <h3>Web Development</h3>
+                        <p>Master HTML, CSS, JavaScript, and full-stack architecture to build modern web applications.</p>
+                    </div>
+                </div>
+
+                <div class="path-card" style="background-image: url('/images/course_data_sci.png');" onclick="autoGenerate('Data Science')">
+                    <div class="path-content">
+                        <h3>Data Science</h3>
+                        <p>Learn Python, Pandas, and machine learning to analyze data and uncover powerful insights.</p>
+                    </div>
+                </div>
+
+                <div class="path-card" style="background-image: url('/images/course_ai.png');" onclick="autoGenerate('Artificial Intelligence')">
+                    <div class="path-content">
+                        <h3>Artificial Intelligence</h3>
+                        <p>Dive deep into neural networks, deep learning, and futuristic AI architectures.</p>
+                    </div>
+                </div>
+
+                <div class="path-card" style="background-image: url('/images/course_design.png');" onclick="autoGenerate('UI/UX Design')">
+                    <div class="path-content">
+                        <h3>UI/UX Design</h3>
+                        <p>Master visual hierarchy, user research, wireframing, and stunning app interfaces.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card setup-card mt-4">
+                <h3 class="mb-4">Or create a custom goal</h3>
+                <form id="goalForm">
+                    <div class="mb-2 text-left">
+                        <label for="goalTitle">What do you want to learn?</label>
+                        <input type="text" id="goalTitle" placeholder="e.g., Learn Full Stack Web Development" required>
+                    </div>
+                    <div class="mb-4 text-left">
+                        <label for="goalDuration">How many days?</label>
+                        <input type="number" id="goalDuration" min="1" max="100" placeholder="e.g., 30" required>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;" id="generateBtn">Generate Custom Roadmap</button>
+                </form>
+            </div>
+            
+            <a href="/dashboard.html" style="margin-top: 2rem;">Return to Dashboard</a>
+        </main>
+    </div>
+
+    <script type="module">
+        import { createGoal, getOrCreateUserId, initTheme } from './js/utils.js';
+        
+        initTheme();
+        getOrCreateUserId();
+        
+        window.logout = () => {
+            localStorage.removeItem('focuslearn_userId');
+            window.location.href = '/index.html';
+        };
+
+        window.autoGenerate = async (topic) => {
+            document.getElementById('pathGrid').style.opacity = '0.5';
+            document.getElementById('pathGrid').style.pointerEvents = 'none';
+            document.getElementById('loadingMsg').style.display = 'block';
+            
+            try {
+                const goal = await createGoal(topic, 30);
+                localStorage.setItem('focuslearn_activeGoal', goal._id);
+                window.location.href = '/dashboard.html';
+            } catch(e) {
+                alert('Failed to generate path.');
+                document.getElementById('pathGrid').style.opacity = '1';
+                document.getElementById('pathGrid').style.pointerEvents = 'all';
+                document.getElementById('loadingMsg').style.display = 'none';
+            }
+        };
+
+        document.getElementById('goalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('goalTitle').value;
+            const duration = document.getElementById('goalDuration').value;
+            
+            const btn = document.getElementById('generateBtn');
+            const loadMsg = document.getElementById('loadingMsg');
+            
+            btn.disabled = true;
+            loadMsg.style.display = 'block';
+
+            try {
+                const goal = await createGoal(title, duration);
+                localStorage.setItem('focuslearn_activeGoal', goal._id);
+                window.location.href = '/dashboard.html';
+            } catch (err) {
+                alert('Error generating roadmap');
+                btn.disabled = false;
+                loadMsg.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

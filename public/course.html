@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses - FocusLearn</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        .filter-bar { display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+        .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        
+        .level-Beginner { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .level-Intermediate { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .level-Advanced { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .level-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        
+        /* Premium Card Layout */
+        .task-card { position: relative; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-color: transparent !important; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .task-card::before { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(to top, rgba(15,23,42,0.95), rgba(15,23,42,0.5)), var(--card-bg, url('/images/login_hero.png')) center/cover no-repeat; opacity: 0.5; transition: 0.4s; z-index: 0; pointer-events: none;}
+        .task-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.3); border-color: var(--primary); }
+        .task-card:hover::before { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">FocusLearn</div>
+            <nav class="nav-links">
+                <a href="/dashboard.html" class="nav-item" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="/focus.html" class="nav-item" data-page="focus"><span>Focus Mode</span></a>
+                <a href="/progress.html" class="nav-item" data-page="progress"><span>Progress</span></a>
+                <a href="/course.html" class="nav-item active" data-page="courses"><span>Courses Library</span></a>
+                <a href="/new-goal.html" class="nav-item" data-page="settings"><span>New Goal</span></a>
+            </nav>
+            <div style="margin-top: auto;">
+                <button class="btn btn-outline" style="width: 100%; margin-bottom: 1rem;" onclick="window.toggleAppTheme()">Toggle Theme</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h1>Recommended Courses</h1>
+                <button class="btn btn-outline" id="seedBtn">Seed Courses</button>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search courses...">
+                <select id="categoryFilter" class="search-box" style="flex: unset; width: 200px;">
+                    <option value="">All Categories</option>
+                    <option value="Web Development">Web Development</option>
+                    <option value="Data Science">Data Science</option>
+                    <option value="AI">AI & Machine Learning</option>
+                    <option value="UI/UX Design">UI/UX Design</option>
+                </select>
+                <select id="levelFilter" class="search-box" style="flex: unset; width: 150px;">
+                    <option value="">All Levels</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                </select>
+            </div>
+
+            <div class="course-grid" id="courseContainer"></div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { setActiveNav, initTheme, toggleTheme, seedCourses, fetchCourses } from './js/utils.js';
+        
+        initTheme();
+        window.toggleAppTheme = toggleTheme;
+        setActiveNav('courses');
+
+        let allCourses = [];
+
+        async function initPage() {
+            document.getElementById('courseContainer').innerHTML = "<p>Loading...</p>";
+            try {
+                allCourses = await fetchCourses();
+                renderCourses(allCourses);
+            } catch(e) {
+                document.getElementById('courseContainer').innerHTML = "<p style='color:var(--danger)'>Failed to load courses</p>";
+            }
+        }
+
+        document.getElementById('seedBtn').addEventListener('click', async () => {
+            await seedCourses();
+            alert('Courses seeded successfully!');
+            initPage();
+        });
+
+        function renderCourses(courses) {
+            const container = document.getElementById('courseContainer');
+            container.innerHTML = '';
+            if (courses.length === 0) {
+                container.innerHTML = '<p class="text-muted">No courses found matching criteria.</p>';
+                return;
+            }
+
+            courses.forEach(c => {
+                let bgImage = "url('/images/login_hero.png')";
+                if(c.category.includes('Web')) bgImage = "url('/images/course_web_dev.png')";
+                else if(c.category.includes('Data') || c.category.includes('Python')) bgImage = "url('/images/course_data_sci.png')";
+                else if(c.category.includes('AI') || c.category.includes('Machine')) bgImage = "url('/images/course_ai.png')";
+                else if(c.category.includes('Design')) bgImage = "url('/images/course_design.png')";
+
+                const card = document.createElement('div');
+                card.className = 'card task-card'; // Re-use the cool dark floating CSS we made for task cards!
+                card.style.setProperty('--card-bg', bgImage);
+                card.innerHTML = `
+                    <div style="position:relative; z-index:2; display:flex; flex-direction:column; height: 100%;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                            <span class="text-muted" style="font-size:0.875rem;">${c.category}</span>
+                            <span class="level-badge level-${c.level}" style="background: rgba(0,0,0,0.5);">${c.level}</span>
+                        </div>
+                        <h3 style="margin-bottom:0.5rem">${c.title}</h3>
+                        <p class="text-muted" style="font-size:0.875rem; margin-bottom:1.5rem; flex:1;">${c.description || ''}</p>
+                        <a href="${c.link}" target="_blank" class="btn btn-outline" style="width:100%; text-align:center; box-shadow:none; border-color:rgba(255,255,255,0.2); color:#fff; background:rgba(0,0,0,0.4);">Watch Video</a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function handleFilter() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.getElementById('categoryFilter').value;
+            const lvl = document.getElementById('levelFilter').value;
+
+            const filtered = allCourses.filter(c => {
+                const matchQ = c.title.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q);
+                const matchCat = cat === '' || c.category === cat;
+                const matchLvl = lvl === '' || c.level === lvl;
+                return matchQ && matchCat && matchLvl;
+            });
+            renderCourses(filtered);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', handleFilter);
+        document.getElementById('categoryFilter').addEventListener('change', handleFilter);
+        document.getElementById('levelFilter').addEventListener('change', handleFilter);
+
+        initPage();
+    </script>
+</body>
+</html>

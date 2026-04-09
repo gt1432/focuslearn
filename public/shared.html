@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Goal - FocusLearn</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .day-badge { background-color: rgba(99,102,241,0.2); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem; font-weight: 600; }
+        .completed-card { opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div class="app-container" style="justify-content:center;">
+        <main class="main-content animate-fade-in" style="max-width: 900px; padding-top:4rem;">
+            <div style="text-align:center; margin-bottom: 3rem;">
+                <h1 id="publicGoalTitle">Loading Shared Goal...</h1>
+                <p class="text-muted">This is a public, read-only view of a FocusLearn roadmap.</p>
+                <a href="/index.html" class="btn mt-4">Create Your Own Roadmap</a>
+            </div>
+
+            <div class="card mb-4" id="progressCard" style="display:none;">
+                <div class="flex justify-between items-center mb-1">
+                    <h3>Overall Progress</h3>
+                    <span id="progressText" style="font-weight: 600; color: var(--success);">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+
+            <div class="task-grid" id="taskContainer"></div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initTheme } from './js/utils.js';
+        initTheme();
+
+        const params = new URLSearchParams(window.location.search);
+        const goalId = params.get('id');
+
+        async function loadPublicGoal() {
+            try {
+                if(!goalId) throw new Error("No goal ID provided");
+                const res = await fetch(`/api/goal/public/${goalId}`);
+                if(!res.ok) throw new Error("Goal is private or not found.");
+                
+                const goal = await res.json();
+                document.getElementById('publicGoalTitle').textContent = goal.title;
+                
+                document.getElementById('progressCard').style.display = 'block';
+                document.getElementById('progressText').textContent = `${goal.progress || 0}%`;
+                document.getElementById('progressBar').style.width = `${goal.progress || 0}%`;
+
+                // Render tasks (read only)
+                const container = document.getElementById('taskContainer');
+                goal.tasks.sort((a,b) => (a.orderIndex||0) - (b.orderIndex||0));
+                goal.tasks.forEach(task => {
+                    const card = document.createElement('div');
+                    card.className = `card ${task.completed ? 'completed-card' : ''}`;
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                            <span class="day-badge">Part ${task.day}</span>
+                            ${task.completed ? '<span style="color:var(--success)">✓ Completed</span>' : '<span style="color:var(--text-muted)">Pending</span>'}
+                        </div>
+                        <h3>${task.title}</h3>
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch(e) {
+                document.getElementById('publicGoalTitle').textContent = e.message;
+            }
+        }
+        loadPublicGoal();
+    </script>
+</body>
+</html>

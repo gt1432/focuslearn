@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FocusLearn</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .task-card { position: relative; display: flex; flex-direction: column; justify-content: space-between; cursor: grab; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-color: transparent !important; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .task-card::before { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(to top, rgba(15,23,42,0.95), rgba(15,23,42,0.5)), var(--card-bg, url('/images/login_hero.png')) center/cover no-repeat; opacity: 0.4; transition: 0.4s; z-index: 0; pointer-events: none;}
+        .task-card > div { position: relative; z-index: 1; }
+        .task-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.3); border-color: var(--primary); }
+        .task-card:hover::before { opacity: 0.8; }
+        
+        .task-card:active { cursor: grabbing; }
+        .task-card.dragging { opacity: 0.5; border: 2px dashed var(--primary); }
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .day-badge { background-color: rgba(99,102,241,0.2); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem; font-weight: 600; }
+        .task-actions { margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .completed-card { opacity: 0.6; filter: grayscale(50%); }
+        
+        /* Phase 3 Resource Improvements */
+        .resource-link-container { margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.1); border-radius: 8px; border-left: 3px solid var(--primary); }
+        .resource-link { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; text-decoration: none;}
+        .resource-why { margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted); }
+        
+        /* Phase 3 Reminders */
+        .reminder-banner { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .task-card.missed { border: 1px solid var(--danger); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">FocusLearn</div>
+            <nav class="nav-links">
+                <a href="/dashboard.html" class="nav-item active" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="/focus.html" class="nav-item" data-page="focus"><span>Focus Mode</span></a>
+                <a href="/progress.html" class="nav-item" data-page="progress"><span>Progress</span></a>
+                <a href="/course.html" class="nav-item" data-page="courses"><span>Courses Library</span></a>
+                <a href="/new-goal.html" class="nav-item" data-page="settings"><span>New Goal</span></a>
+            </nav>
+            <div style="margin-top: auto;">
+                <button class="btn btn-outline" style="width: 100%; margin-bottom: 1rem;" onclick="window.toggleAppTheme()">Toggle Theme</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content animate-fade-in" id="dashboardContent">
+            
+            <div id="reminderContainer"></div>
+
+            <div class="flex justify-between items-center mb-4">
+                <h1 id="goalTitleHeader" style="margin: 0;">Loading Goal...</h1>
+                <div>
+                    <button class="btn btn-outline" id="shareBtn" style="display:none;" onclick="openShare()">🔗 Share</button>
+                </div>
+            </div>
+
+            <div class="card mb-4" id="progressCard" style="display:none;">
+                <div class="flex justify-between items-center mb-1">
+                    <h3>Overall Progress</h3>
+                    <span id="progressText" style="font-weight: 600; color: var(--success);">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <h2>Daily Roadmap</h2>
+                <span class="text-muted" style="font-size: 0.875rem;">Drag tasks to reorder</span>
+            </div>
+            
+            <div class="task-grid" id="taskContainer">
+                <p>Loading tasks...</p>
+            </div>
+
+            <h2 style="margin-top: 3rem; margin-bottom: 1rem;">Recommended Courses</h2>
+            <div class="task-grid" id="recCoursesContainer">
+                <p class="text-muted">Loading recommendations...</p>
+            </div>
+
+        </main>
+    </div>
+
+    <script type="module">
+        import { fetchUserGoals, updateTaskCompletion, setActiveNav, initTheme, toggleTheme, shareGoal, reorderTasks, evaluateReminders, fetchReminders, markReminderRead, skipTask, fetchCourses } from './js/utils.js';
+
+        initTheme();
+        window.toggleAppTheme = toggleTheme;
+
+        let activeGoalId = localStorage.getItem('focuslearn_activeGoal');
+        let currentGoalCreationDate = null;
+
+        async function loadReminders() {
+            await evaluateReminders(); // lazy evaluate
+            const reminders = await fetchReminders();
+            const container = document.getElementById('reminderContainer');
+            container.innerHTML = '';
+            
+            reminders.forEach(r => {
+                const dom = document.createElement('div');
+                dom.className = 'reminder-banner mb-4 animate-fade-in';
+                dom.innerHTML = `
+                    <div><strong>Alert:</strong> ${r.message}</div>
+                    <button class="btn" style="padding: 0.25rem 0.75rem; text-transform:none;" onclick="dismissReminder('${r._id}')">Got it</button>
+                `;
+                container.appendChild(dom);
+            });
+        }
+
+        window.dismissReminder = async (id) => {
+            await markReminderRead(id);
+            loadReminders(); // reload banners
+        };
+
+        async function initDashboard() {
+            setActiveNav('dashboard');
+            try {
+                loadReminders();
+
+                const goals = await fetchUserGoals();
+                if (goals.length === 0) {
+                    window.location.href = '/new-goal.html';
+                    return;
+                }
+                
+                const goal = activeGoalId ? goals.find(g => g._id === activeGoalId) || goals[0] : goals[0];
+                activeGoalId = goal._id;
+                currentGoalCreationDate = new Date(goal.createdAt);
+                
+                localStorage.setItem('focuslearn_activeGoal', activeGoalId);
+
+                document.getElementById('goalTitleHeader').textContent = goal.title;
+                document.getElementById('shareBtn').style.display = 'block';
+
+                document.getElementById('progressCard').style.display = 'block';
+                document.getElementById('progressText').textContent = `${goal.progress || 0}%`;
+                document.getElementById('progressBar').style.width = `${goal.progress || 0}%`;
+
+                // Sort tasks by orderIndex before rendering
+                goal.tasks.sort((a,b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+                renderTasks(goal.tasks, goal.progress || 0, goal.title);
+
+                // Load recommended courses
+                loadRecommendedCourses();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('taskContainer').innerHTML = '<p style="color:var(--danger)">Error loading dashboard data.</p>';
+            }
+        }
+
+        function renderTasks(tasks, currentProgress, goalTitle) {
+            const container = document.getElementById('taskContainer');
+            container.innerHTML = '';
+            const today = new Date();
+            const goalAgeDays = Math.ceil(Math.abs(today - currentGoalCreationDate) / (1000 * 60 * 60 * 24));
+            
+            // Map goal title to specific course image
+            let bgImage = "url('/images/login_hero.png')";
+            if(goalTitle === 'Web Development') bgImage = "url('/images/course_web_dev.png')";
+            else if(goalTitle === 'Data Science') bgImage = "url('/images/course_data_sci.png')";
+            else if(goalTitle === 'Artificial Intelligence') bgImage = "url('/images/course_ai.png')";
+            else if(goalTitle === 'UI/UX Design') bgImage = "url('/images/course_design.png')";
+            
+            tasks.forEach(task => {
+                const isMissed = !task.completed && task.day < goalAgeDays;
+                
+                const card = document.createElement('div');
+                card.className = `card task-card ${task.completed ? 'completed-card' : ''} ${isMissed ? 'missed' : ''}`;
+                card.draggable = true;
+                card.dataset.id = task._id;
+                card.style.setProperty('--card-bg', bgImage);
+                
+                let resourcesHtml = '';
+                task.resources.forEach(res => {
+                    const icon = res.type === 'video' ? '📺' : '📄';
+                    resourcesHtml += `
+                        <div class="resource-link-container">
+                            <a href="${res.url}" target="_blank" class="resource-link">${icon} ${res.title}</a>
+                            ${res.description ? `<div class="resource-why"><strong>Why this resource?</strong> ${res.description}</div>` : ''}
+                        </div>
+                    `;
+                });
+
+                let actionHtml = '';
+                if (isMissed) {
+                    actionHtml = `
+                        <div style="width:100%; border-top:1px solid var(--danger); padding-top:1rem; margin-top:1rem;" class="flex gap-2">
+                            <button class="btn btn-outline" style="flex:1" onclick="focusTask('${task._id}')">Resume Where Left</button>
+                            <button class="btn" style="flex:1; background:var(--danger)" onclick="skipMissedTask('${task._id}')">Skip to Next</button>
+                        </div>
+                    `;
+                } else {
+                     actionHtml = `
+                        <button class="btn btn-outline" style="flex:1" onclick="focusTask('${task._id}')">Focus</button>
+                        <button class="btn" style="flex:1; background-color: ${task.completed ? 'var(--border)' : 'var(--success)'}" onclick="toggleTask('${task._id}', ${!task.completed})">
+                            ${task.completed ? 'Undo' : 'Complete'}
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="task-header">
+                            <span class="day-badge">Day ${task.day}</span>
+                            ${task.completed ? '<span style="color:var(--success)">✓ Completed</span>' : ''}
+                            ${isMissed ? '<span style="color:var(--danger)">⚠️ Overdue</span>' : ''}
+                        </div>
+                        <h3 class="mb-2">${task.title}</h3>
+                        ${resourcesHtml}
+                    </div>
+                    <div class="task-actions mt-4">
+                        ${actionHtml}
+                    </div>
+                `;
+                
+                // Drag and Drop implementation
+                card.addEventListener('dragstart', (e) => {
+                    card.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', task._id);
+                });
+                
+                card.addEventListener('dragend', async () => {
+                    card.classList.remove('dragging');
+                    const orderMap = {};
+                    [...container.children].forEach((child, index) => {
+                        orderMap[child.dataset.id] = index;
+                    });
+                    try { await reorderTasks(orderMap); } catch(err) { console.error('Reorder failed'); }
+                });
+
+                container.appendChild(card);
+            });
+            
+            // Container Drag Over Logic
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const draggingElement = document.querySelector('.dragging');
+                if(!draggingElement) return;
+                const afterElement = getDragAfterElement(container, e.clientY, e.clientX);
+                if (afterElement == null) container.appendChild(draggingElement);
+                else container.insertBefore(draggingElement, afterElement);
+            });
+        }
+        
+        function getDragAfterElement(container, y, x) {
+            const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2; // Approximate grid horizontal detection
+                const offsetY = y - box.top - box.height / 2; // Vertical detection
+                if (offset < 0 && offsetY < box.height && offsetY > -box.height && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else { return closest; }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        async function loadRecommendedCourses() {
+            try {
+                // Fetch just 2 courses to remain premium and uncluttered
+                const courses = await fetchCourses();
+                const container = document.getElementById('recCoursesContainer');
+                container.innerHTML = '';
+                
+                if(courses.length > 0) {
+                     courses.slice(0, 2).forEach(c => {
+                        container.innerHTML += `
+                            <div class="card">
+                                <div class="text-muted mb-2 text-sm">${c.level} • ${c.category}</div>
+                                <h3>${c.title}</h3>
+                                <p class="text-muted mt-2 mb-4" style="font-size:0.875rem">${c.description}</p>
+                                <a href="${c.link}" target="_blank" class="btn btn-outline" style="display:block; text-align:center;">Start Learning</a>
+                            </div>
+                        `;
+                    });
+                } else {
+                     container.innerHTML = '<p class="text-muted">No recommendations available. Click "Courses Library" on the sidebar and press "Seed Courses".</p>';
+                }
+            } catch(e) {}
+        }
+
+        window.toggleTask = async (taskId, status) => {
+            try {
+                await updateTaskCompletion(taskId, status);
+                initDashboard();
+            } catch(e) { alert('Action failed'); }
+        };
+
+        window.skipMissedTask = async (taskId) => {
+             try {
+                await skipTask(taskId);
+                initDashboard();
+            } catch(e) { alert('Action failed'); }
+        };
+
+        window.focusTask = (taskId) => {
+            localStorage.setItem('focuslearn_activeTask', taskId);
+            window.location.href = '/focus.html';
+        };
+
+        window.openShare = async () => {
+            try {
+                await shareGoal(activeGoalId);
+                const link = `${window.location.origin}/shared.html?id=${activeGoalId}`;
+                alert(`Goal Shared! Your link is:\n${link}`); // simple alert instead of modal
+            } catch(e) { alert('Failed to generate sharing link'); }
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>
