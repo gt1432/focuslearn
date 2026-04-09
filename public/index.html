@@ -31,137 +31,112 @@
             z-index: 1;
         }
 
+        .hero {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
         .hero-content {
             position: relative;
-            z-index: 2;
+            z-index: 4;
             max-width: 800px;
             padding: 4rem;
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.85); /* Deep dark blue background */
+            backdrop-filter: blur(25px);
+            border: 2px solid var(--primary); /* Glowing primary border */
             border-radius: 24px;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 50px rgba(99, 102, 241, 0.4);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+            pointer-events: auto; /* Ensure it catches clicks */
         }
 
         .hero-content:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 35px 60px -15px rgba(99, 102, 241, 0.3);
-            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-15px);
+            box-shadow: 0 40px 80px rgba(99, 102, 241, 0.6);
+            border-color: #fff;
         }
 
         .hero h1 {
-            font-size: 4.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            background: linear-gradient(to right, #fff, var(--primary), #a5b4fc);
+            font-size: 5.5rem;
+            margin-bottom: 1rem;
+            font-weight: 900;
+            background: linear-gradient(to bottom, #ffffff, #818cf8);
             -webkit-background-clip: text;
-            color: transparent;
             background-clip: text;
-            text-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            color: transparent;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         .hero p {
-            font-size: 1.4rem;
-            color: #cbd5e1;
+            font-size: 1.6rem;
+            color: #f1f5f9; /* Ultra bright white */
             margin-bottom: 3rem;
-            line-height: 1.7;
+            line-height: 1.5;
+            font-weight: 600;
         }
 
         .cta-group {
             display: flex;
-            gap: 1.5rem;
+            gap: 2rem;
             justify-content: center;
+            position: relative;
+            z-index: 5;
         }
 
         .btn-hero {
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 1.25rem 3.5rem;
+            font-size: 1.3rem;
+            font-weight: 800;
+            border-radius: 12px;
+            cursor: pointer;
+            pointer-events: auto;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn-hero.btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+        }
+
+        .btn-hero.btn-outline {
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
         }
 
         .btn-hero:hover {
-            transform: scale(1.05);
+            transform: scale(1.1) translateY(-5px);
+            background: #fff;
+            color: var(--primary);
         }
 
-        /* Footer Styling */
+        /* Footer Visibility */
         footer {
             position: relative;
-            z-index: 2;
-            background: rgba(15, 23, 42, 0.98);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 4rem 2rem;
-            color: #94a3b8;
-        }
-
-        .footer-grid {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 3rem;
-        }
-
-        .footer-brand h2 {
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-
-        .footer-brand p {
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
-        .footer-links h3 {
-            color: #fff;
-            font-size: 1.1rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .footer-links ul {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 0.75rem;
-        }
-
-        .footer-links a {
-            color: #94a3b8;
-            font-size: 0.9rem;
-            transition: color 0.3s;
-        }
-
-        .footer-links a:hover {
-            color: var(--primary);
-        }
-
-        .copyright {
-            margin-top: 4rem;
-            text-align: center;
-            font-size: 0.8rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 2rem;
-        }
-
-        /* Animations */
-        @keyframes float {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(-10px, 15px); }
-            100% { transform: translate(0, 0); }
+            z-index: 10;
+            background: #020617;
+            border-top: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 5rem 2rem;
         }
 
         .glow-orb {
             position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
             border-radius: 50%;
             z-index: 1;
-            filter: blur(40px);
-            animation: float 10s infinite ease-in-out;
+            filter: blur(60px);
+            animation: float 12s infinite ease-in-out;
+            pointer-events: none; /* KEY FIX: Stop orbs from blocking clicks */
         }
     </style>
 </head>
